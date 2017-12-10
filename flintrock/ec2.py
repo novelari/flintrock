@@ -147,12 +147,12 @@ class EC2Cluster(FlintrockCluster):
         ec2 = boto3.resource(service_name='ec2', region_name=self.region)
 
         # TODO: Centralize logic to get Flintrock base security group. (?)
-        flintrock_base_group = list(
-            ec2.security_groups.filter(
-                Filters=[
-                    {'Name': 'group-name', 'Values': ['flintrock']},
-                    {'Name': 'vpc-id', 'Values': [self.vpc_id]},
-                ]))[0]
+        # flintrock_base_group = list(
+        #     ec2.security_groups.filter(
+        #         Filters=[
+        #             {'Name': 'group-name', 'Values': ['flintrock']},
+        #             {'Name': 'vpc-id', 'Values': [self.vpc_id]},
+        #         ]))[0]
 
         # We "unassign" the cluster security group here (i.e. the
         # 'flintrock-clustername' group) so that we can immediately delete it once
@@ -160,9 +160,9 @@ class EC2Cluster(FlintrockCluster):
         # violations for a couple of minutes before we can actually delete the group.
         # TODO: Is there a way to do this in one call for all instances?
         #       Do we need to throttle these calls?
-        for instance in self.instances:
-            instance.modify_attribute(
-                Groups=[flintrock_base_group.id])
+        # for instance in self.instances:
+        #     instance.modify_attribute(
+        #         Groups=[flintrock_base_group.id])
 
         # TODO: Centralize logic to get cluster security group name from cluster name.
         cluster_group = list(
@@ -553,7 +553,7 @@ def get_or_create_flintrock_security_groups(
     #     urllib.request.urlopen('http://checkip.amazonaws.com/')
     #     .read().decode('utf-8').strip())
     flintrock_client_ip="0.0.0.0"
-    flintrock_client_cidr = '{ip}/32'.format(ip=flintrock_client_ip)
+    flintrock_client_cidr = '{ip}/0'.format(ip=flintrock_client_ip)
 
     # TODO: Services should be responsible for registering what ports they want exposed.
     client_rules = [
