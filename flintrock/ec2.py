@@ -514,12 +514,14 @@ def get_or_create_flintrock_security_groups(
 
     # The Flintrock group is common to all Flintrock clusters and authorizes client traffic
     # to them.
-    flintrock_group = list(
-        ec2.security_groups.filter(
-            Filters=[
-                {'Name': 'group-name', 'Values': [flintrock_group_name]},
-                {'Name': 'vpc-id', 'Values': [vpc_id]},
-            ]))
+    flintrock_group = None
+
+    # flintrock_group = list(
+    #     ec2.security_groups.filter(
+    #         Filters=[
+    #             {'Name': 'group-name', 'Values': [flintrock_group_name]},
+    #             {'Name': 'vpc-id', 'Values': [vpc_id]},
+    #         ]))
     flintrock_group = flintrock_group[0] if flintrock_group else None
 
     # The cluster group is specific to one Flintrock cluster and authorizes intra-cluster
@@ -532,11 +534,19 @@ def get_or_create_flintrock_security_groups(
             ]))
     cluster_group = cluster_group[0] if cluster_group else None
 
-    if not flintrock_group:
-        flintrock_group = ec2.create_security_group(
-            GroupName=flintrock_group_name,
-            Description="Flintrock base group",
+    # if not flintrock_group:
+    #     flintrock_group = ec2.create_security_group(
+    #         GroupName=flintrock_group_name,
+    #         Description="Flintrock base group",
+    #         VpcId=vpc_id)
+
+    # Rules for internal cluster communication.
+    if not cluster_group:
+        cluster_group = ec2.create_security_group(
+            GroupName=cluster_group_name,
+            Description="Flintrock cluster group",
             VpcId=vpc_id)
+
 
     # Rules for the client interacting with the cluster.
     flintrock_client_ip = (
@@ -592,7 +602,8 @@ def get_or_create_flintrock_security_groups(
     # TODO: Add rules in one shot.
     for rule in client_rules:
         try:
-            flintrock_group.authorize_ingress(
+                #flintrock_group.authorize_ingress(
+            cluster_group.authorize_ingress(
                 IpProtocol=rule.ip_protocol,
                 FromPort=rule.from_port,
                 ToPort=rule.to_port,
@@ -601,12 +612,12 @@ def get_or_create_flintrock_security_groups(
             if e.response['Error']['Code'] != 'InvalidPermission.Duplicate':
                 raise Exception("Error adding rule: {r}".format(r=rule))
 
-    # Rules for internal cluster communication.
-    if not cluster_group:
-        cluster_group = ec2.create_security_group(
-            GroupName=cluster_group_name,
-            Description="Flintrock cluster group",
-            VpcId=vpc_id)
+    # # Rules for internal cluster communication.
+    # if not cluster_group:
+    #     cluster_group = ec2.create_security_group(
+    #         GroupName=cluster_group_name,
+    #         Description="Flintrock cluster group",
+    #         VpcId=vpc_id)
 
     try:
         cluster_group.authorize_ingress(
@@ -621,7 +632,8 @@ def get_or_create_flintrock_security_groups(
         if e.response['Error']['Code'] != 'InvalidPermission.Duplicate':
             raise Exception("Error authorizing cluster ingress to self.") from e
 
-    return [flintrock_group, cluster_group]
+    # return [ flintrock_group, cluster_group]
+    return [cluster_group]
 
 
 def get_ec2_block_device_mappings(
